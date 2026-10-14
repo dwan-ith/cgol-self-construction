@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesa Self-Construction: Conway & Von Neumann Automata</title>
+  <meta name="description" content="Interactive visualizer and simulation of self-constructing automata in Conway's Game of Life and John von Neumann's 29-state classical constructor within the Mesa agent-based modeling framework.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="forest-theme">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="4" stroke="#8fae85" stroke-opacity="0.45"/>
+          <rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="#f4f8f2" stroke="#f4f8f2"/>
+          <line x1="12" y1="3" x2="12" y2="7" stroke="#a3c99a"/>
+          <line x1="12" y1="17" x2="12" y2="21" stroke="#a3c99a"/>
+          <line x1="3" y1="12" x2="7" y2="12" stroke="#a3c99a"/>
+          <line x1="17" y1="12" x2="21" y2="12" stroke="#a3c99a"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Mesa Self-Construction</h1>
+        <span class="badge-tag">Cellular Automata Lab</span>
+      </div>
+    </div>
+
+    <!-- Active Preset Selector -->
+    <div class="header-center">
+      <div class="select-wrapper">
+        <label for="preset-select" class="sr-only">Select Experiment</label>
+        <select id="preset-select" aria-label="Select construction preset">
+          <option value="block_synthesis">1. De Novo 2-Glider Block Synthesis</option>
+          <option value="elbow_shift">2. Single-Channel Arm Extension (0move-2)</option>
+          <option value="two_stage_arm">3. Sequential Slow-Salvo Arm Walking</option>
+          <option value="blinker_synthesis">4. 2-Glider Blinker Oscillator Synthesis</option>
+          <option value="von_neumann_constructor">5. Von Neumann 29-State Constructor Demo</option>
+          <option value="vn_description_reader">6. Von Neumann Description Reader (Tape-Driven Build)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Quick Status Badge -->
+    <div class="header-actions">
+      <div id="validation-pill" class="validation-pill status-in-progress">
+        <span class="status-dot"></span>
+        <span id="validation-status-text">In Progress</span>
+      </div>
+      <button id="btn-theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Workspace -->
+  <main class="app-main">
+    <!-- Left Sidebar: Controls & Experiment Context -->
+    <aside class="sidebar-panel left-panel">
+      <!-- Experiment Info Card -->
+      <section class="card experiment-card">
+        <div class="card-header">
+          <span id="experiment-category" class="category-chip">Conway's Game of Life</span>
+          <h2 id="experiment-title">De Novo 2-Glider Block Synthesis</h2>
+        </div>
+        <p id="experiment-description" class="experiment-desc">
+          Two synchronized gliders colliding head-on in vacuum at 180°.
+        </p>
+      </section>
+
+      <!-- Simulation Playback Controls -->
+      <section class="card controls-card">
+        <div class="card-title">Playback Controls</div>
+        
+        <div class="button-grid">
+          <button id="btn-step-back" class="btn btn-secondary" title="Step Backward 1 Gen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11 19V5l-9 7 9 7zm1-14v14l9-7-9-7z"/>
+            </svg>
+            <span>Back</span>
+          </button>
+          
+          <button id="btn-play-pause" class="btn btn-primary" title="Play or Pause">
+            <svg id="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="play-pause-label">Play</span>
+          </button>
+
+          <button id="btn-step-forward" class="btn btn-secondary" title="Step Forward 1 Gen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 5v14l9-7-9-7zm-1 14V5l-9 7 9 7z"/>
+            </svg>
+            <span>Step</span>
+          </button>
+
+          <button id="btn-reset" class="btn btn-outline" title="Reset Simulation">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <!-- Run to proof button -->
+        <button id="btn-run-proof" class="btn btn-accent btn-block" title="Fast-forward to verification step">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span>Run to Construction Proof</span>
+        </button>
+
+        <!-- Speed Slider -->
+        <div class="slider-control">
+          <div class="slider-header">
+            <span>Simulation Speed</span>
+            <span id="speed-label" class="mono-value">15 FPS</span>
+          </div>
+          <input type="range" id="speed-slider" min="1" max="60" value="15" step="1">
+        </div>
+      </section>
+
+      <!-- View & Display Overlays -->
+      <section class="card overlay-card">
+        <div class="card-title">View Options</div>
+        <div class="toggle-group">
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-grid" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Grid Mesh</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-trajectories" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Glider Trajectories</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-target-zone" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Target Construction Zone</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-glow" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Active Cell Glow</span>
+          </label>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Center: Interactive Grid Canvas Area -->
+    <section class="viewport-container">
+      <!-- Canvas Overlay Bar -->
+      <div class="viewport-hud">
+        <div class="hud-item">
+          <span class="hud-label">GENERATION</span>
+          <span id="hud-generation" class="hud-value">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">POPULATION</span>
+          <span id="hud-population" class="hud-value">10</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">STAGE</span>
+          <span id="hud-stage" class="hud-value stage-text">Initial Configuration</span>
+        </div>
+        <div class="hud-item hud-coords">
+          <span class="hud-label">HOVER CELL</span>
+          <span id="hud-hover" class="hud-value mono-value">-- , --</span>
+        </div>
+      </div>
+
+      <!-- Canvas Frame -->
+      <div id="canvas-wrapper" class="canvas-wrapper">
+        <canvas id="life-canvas"></canvas>
+      </div>
+
+      <!-- Viewport Floating Zoom Bar -->
+      <div class="zoom-toolbar">
+        <button id="btn-zoom-in" class="zoom-btn" title="Zoom In">+</button>
+        <button id="btn-zoom-reset" class="zoom-btn" title="Reset View">100%</button>
+        <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out">−</button>
+        <button id="btn-fit-target" class="zoom-btn btn-focus-target" title="Focus Target Zone">Target</button>
+      </div>
+
+      <!-- Legend Footer -->
+      <div class="viewport-legend">
+        <div class="legend-item"><span class="legend-dot color-glider"></span> Gliders / Kinetic Pulses</div>
+        <div class="legend-item"><span class="legend-dot color-elbow"></span> Elbow / Arm Component</div>
+        <div class="legend-item"><span class="legend-dot color-target"></span> Target Construction Site</div>
+        <div class="legend-item"><span class="legend-dot color-confluent"></span> Confluent / Logic Organ</div>
+      </div>
+    </section>
+
+    <!-- Right Sidebar: Telemetry, Proof of Construction, Theory -->
+    <aside class="sidebar-panel right-panel">
+      <!-- Proof of Construction Card -->
+      <section class="card proof-card">
+        <div class="card-header-flex">
+          <div class="card-title">Proof of Construction</div>
+          <span id="proof-badge" class="badge-result">VALIDATING</span>
+        </div>
+        
+        <div class="proof-metric-grid">
+          <div class="metric-box">
+            <span class="metric-label">Pattern Match</span>
+            <span id="metric-match" class="metric-value">0.0%</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Equilibrium</span>
+            <span id="metric-settled" class="metric-value">No</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Gliders Used</span>
+            <span id="metric-gliders" class="metric-value">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Target Pop</span>
+            <span id="metric-target-pop" class="metric-value">4</span>
+          </div>
+        </div>
+
+        <div class="proof-statement">
+          <p id="proof-text" class="proof-paragraph">
+            Analyzing cellular automaton dynamics...
+          </p>
+        </div>
+      </section>
+
+      <!-- Slow Salvo Glider Schedule Card -->
+      <section class="card schedule-card">
+        <div class="card-title">Salvo Schedule &amp; Glider Telemetry</div>
+        <div id="glider-timeline" class="glider-timeline">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Population Sparkline / Chart Card -->
+      <section class="card chart-card">
+        <div class="card-title">Population History</div>
+        <div class="sparkline-wrapper">
+          <canvas id="sparkline-canvas" width="280" height="70"></canvas>
+        </div>
+      </section>
+
+      <!-- Theory & Research Comparison Card -->
+      <section class="card theory-card">
+        <div class="card-title">Architectural Insight</div>
+        <div class="theory-content">
+          <div class="theory-badge" id="theory-mode-badge">Conway Self-Construction</div>
+          <p id="theory-body" class="theory-text">
+            In Conway's Game of Life, self-construction emerges from discrete gliders interacting with an elbow block. Unlike von Neumann's 29 states, Conway's universe uses only 2 local states (0 and 1) with an 8-neighbor Moore grid.
+          </p>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
