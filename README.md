@@ -11,7 +11,7 @@
 
 ---
 
-## 🌟 Overview
+##  Overview
 
 Conventional Conway's Game of Life examples demonstrate how simple deterministic rules generate complex emergence. **Mesa Self-Construction** takes a fundamental leap forward into **algorithmic construction and self-reproduction**:
 
@@ -28,7 +28,7 @@ This project bridges two monumental paradigms in cellular automata theory:
 
 ---
 
-## 🚀 Key Features
+## Features
 
 - **Built on Mesa 3.x (`mesa.Model`, `PropertyLayer`, and `FixedAgent`)**:
   - Zero-border Conway stepping (no torus wrap) for aimed glider collisions.
@@ -71,7 +71,7 @@ This project bridges two monumental paradigms in cellular automata theory:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 mesa-self-construction/
@@ -98,7 +98,7 @@ mesa-self-construction/
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 ```bash
@@ -123,7 +123,7 @@ python -m pytest tests/ -v
 
 ---
 
-## 🔬 Benchmark Results
+## Benchmark Results
 
 All 6 experiments pass strict validation (exact box + population + settling/constructions).
 Timings are machine-dependent; rerun with `python run_experiments.py`
@@ -141,7 +141,7 @@ accounting, and construction-event counts per experiment):
 
 ---
 
-## 📖 Theoretical Comparison
+## Theoretical Comparison
 
 | Dimension | Conway's Game of Life Self-Construction | Von Neumann 29-State (this repo) |
 |:---|:---|:---|
@@ -171,7 +171,7 @@ is converted into persistent wired machinery:
 
 ---
 
-## 🧪 Reproducibility
+## Reproducibility
 
 Every experiment is a frozen initial configuration plus a deterministic
 synchronous update (no randomness after setup). To reproduce:
@@ -197,7 +197,7 @@ Initial configurations live in `mesa_self_construction/presets.py`
 
 ---
 
-## 📜 License
+## License
 
 MIT License — see `LICENSE`. `cgol_ref/` remains under EZLiang's MIT
 (see `cgol_ref/LICENSE` and `LICENSE`). Developed for the Mesa
