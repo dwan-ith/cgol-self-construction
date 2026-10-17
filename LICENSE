@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Mesa Community Contributors
+Copyright (c) 2026 dwan-ith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,22 @@ SOFTWARE.
 Third-party attribution
 -----------------------
 
-The directory `cgol_ref/` is a vendored copy of
-https://github.com/EZLiang/cgol-self-construction, which carries its own
-MIT License:
+1. The directory `cgol_ref/` is a vendored copy of
+   https://github.com/EZLiang/cgol-self-construction, which carries its own
+   MIT License:
 
-    MIT License
-    Copyright (c) 2026 EZLiang
+       MIT License
+       Copyright (c) 2026 EZLiang
 
-See `cgol_ref/LICENSE` for the full text. That notice is preserved here in
-compliance with the MIT license conditions.
+   See `cgol_ref/LICENSE` for the full text.
+
+2. `mesa_self_construction/data/JvN29.table` is the normative `@TABLE`
+   transition data from Golly's `JvN29.rule` for von Neumann's 29-state
+   automaton, retrieved via
+   https://github.com/EZLiang/vonNeumannTuringMachine (MIT), itself derived
+   from John von Neumann's *Theory of Self-Reproducing Automata*
+   (A. W. Burks, ed., 1966). The transition data is reproduced verbatim for
+   auditability; see the provenance header inside the file.
+
+Both notices are preserved here in compliance with the MIT license
+conditions.

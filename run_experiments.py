@@ -37,8 +37,9 @@ def run_all_experiments():
         extra = ""
         if model.is_von_neumann:
             extra = (
-                f"  Constructions: {model.vn_constructed_cells} "
-                f"(sensitized {model.vn_sensitized_cells}, killed {model.vn_killed_cells})"
+                f"  VN events: {model.vn_changed_cells} cell changes "
+                f"(sensitized {model.vn_sensitized_cells}, killed {model.vn_killed_cells}); "
+                f"period {val.details.get('period')}"
             )
         else:
             extra = (
@@ -46,6 +47,11 @@ def run_all_experiments():
                 f"{model.gliders_in_flight} in flight, "
                 f"{model.gliders_consumed_count} consumed; "
                 f"components {model.component_counts}"
+            )
+        if (preset.metadata or {}).get("machine"):
+            extra += (
+                f"\n  Constructed from vacuum: {model.vn_constructed_cells} cells "
+                f"(types {val.details.get('constructed_types')})"
             )
         print(f"  Result: {status} in {elapsed_ms:.2f} ms")
         print(f"  Pattern Match: {val.match_ratio * 100:.1f}%")

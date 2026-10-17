@@ -5,16 +5,18 @@
  * proof-of-construction telemetry, and population charts.
  */
 
-// Von Neumann 29-state names, mirroring von_neumann.STATE_NAMES.
+// Canonical von Neumann 29-state names, mirroring von_neumann.STATE_NAMES.
+// 0 U; 1-8 sensitization tree; 9-12 OTS; 13-16 OTS*; 17-20 STS;
+// 21-24 STS*; 25-28 confluent (C00,C01,C10,C11).
 const VN_STATE_NAMES = {
-  0: "U blank",
-  1: "T_O E", 2: "T_O N", 3: "T_O W", 4: "T_O S",
-  5: "T_O* E", 6: "T_O* N", 7: "T_O* W", 8: "T_O* S",
-  9: "T_S E", 10: "T_S N", 11: "T_S W", 12: "T_S S",
-  13: "T_S* E", 14: "T_S* N", 15: "T_S* W", 16: "T_S* S",
-  17: "C confluent", 18: "C* firing", 19: "C1 latched", 20: "C1* latched+firing",
-  21: "V_O pend E", 22: "V_O pend N", 23: "V_O pend W", 24: "V_O pend S",
-  25: "V_S pend E", 26: "V_S pend N", 27: "V_S pend W", 28: "V_S pend S",
+  0: "U (ground)",
+  1: "S (sensitized)", 2: "S0", 3: "S1", 4: "S00",
+  5: "S01", 6: "S10", 7: "S11", 8: "S000",
+  9: "OTS E", 10: "OTS N", 11: "OTS W", 12: "OTS S",
+  13: "OTS* E", 14: "OTS* N", 15: "OTS* W", 16: "OTS* S",
+  17: "STS E", 18: "STS N", 19: "STS W", 20: "STS S",
+  21: "STS* E", 22: "STS* N", 23: "STS* W", 24: "STS* S",
+  25: "C00 (confluent)", 26: "C01", 27: "C10", 28: "C11",
 };
 
 class SelfConstructionApp {
@@ -455,16 +457,43 @@ class SelfConstructionApp {
     const theoryBadge = document.getElementById("theory-mode-badge");
     const theoryBody = document.getElementById("theory-body");
     if (this.modelState.is_von_neumann) {
-      const built = this.modelState.vn_constructed ?? 0;
-      if (this.modelState.preset_id === "vn_description_reader") {
-        theoryBadge.textContent = "Von Neumann Description Reader";
-        theoryBody.textContent =
-          `Stored 3-bit tape [O, S, O] copied into built cells [1, 9, 1]: first pulse sensitizes each blank slot, second solidifies the described kind. ${built}/3 construction events so far. This read-and-build loop is the core mechanism universal construction scales up.`;
-      } else {
-        theoryBadge.textContent = "Von Neumann 29-State Constructor";
-        theoryBody.textContent =
-          `Full 29-state von Neumann system: directional ordinary/special transmission, confluent latch with one-tick delay, sensitized construct/kill. ${built} sensitized→wired construction events counted so far; the arm extends eastward as pulses arrive. Decoder programs and full self-description tapes remain out of scope.`;
-      }
+      const changed = this.modelState.vn_changed ?? 0;
+      const VN_THEORY = {
+        vn_wire_signal: [
+          "Von Neumann: Wire Signal",
+          "A single excited ordinary-transmission cell (OTS*) propagates one cell per tick along a quiescent wire (OTS = 9), each cell lighting the next and decaying back to rest. This is the automaton's communication primitive.",
+        ],
+        vn_wire_extension: [
+          "Von Neumann: Wire Extension",
+          "A pulse reaches the blank tip and the 8-state sensitization tree resolves it into a brand-new ordinary transmission cell (state 9), extending the wire by one. This sensitize-then-build step is how von Neumann's arm grows.",
+        ],
+        vn_special_kill: [
+          "Von Neumann: Erasure",
+          "An excited special cell (STS* = 21) meeting a quiescent ordinary cell (OTS = 9) annihilates it (to ground). Ordinary-versus-special interaction is the automaton's write/erase mechanism.",
+        ],
+        vn_confluent_delay: [
+          "Von Neumann: Confluent Latch",
+          "The confluent organ cycles C00 -> C01 -> C10 -> C00 (states 25-28), holding a signal for a fixed number of ticks. These one-tick delays let von Neumann's clocked construction arm sequence its build instructions.",
+        ],
+        vn_counter: [
+          "Von Neumann: Counter (Nobili)",
+          "Renato Nobili's counting circuit, taken verbatim from Golly's JvN29 collection. It accumulates well-separated input pulses and, after ten, emits one output pulse and resets. It is a live self-clocked circuit, so the proof tracks the new cells it builds out of vacuum rather than a static shape.",
+        ],
+        vn_cell_coders: [
+          "Von Neumann: Cell Coders",
+          "Nobili's coders: each turns a single excited pulse into the signal train that constructs one of the nine constructible cell types (OTS 9-12, STS 17-20, confluent 25). Running it from a quiescent grid builds all nine types, 18 cells from vacuum - the honest construction result.",
+        ],
+        vn_self_replicator: [
+          "Von Neumann: Self-Replicator",
+          "A compact self-reproducing machine that reads its own description tape and begins building a copy. Within a few hundred steps it constructs new excited-transmission and confluent cells; full replication takes on the order of 10^5 generations, so the proof tracks the growth, not the finished copy.",
+        ],
+      };
+      const [badge, body] = VN_THEORY[this.modelState.preset_id] || [
+        "Von Neumann 29-State Automaton",
+        "The canonical 29-state von Neumann automaton: 8-state sensitization tree, ordinary (OTS) and special (STS) transmission, confluent delay organ, and special/ordinary erase. Rules are loaded from the reference JvN29.table; a single primitive is shown at a time here.",
+      ];
+      theoryBadge.textContent = badge;
+      theoryBody.textContent = `${body} (${changed} cell changes so far.)`;
     } else {
       theoryBadge.textContent = "Conway Self-Construction";
       theoryBody.textContent =
@@ -564,30 +593,26 @@ class SelfConstructionApp {
       let glowColor = "rgba(163, 201, 154, 0.35)";
 
       if (isVN) {
-        // Von Neumann 29-state colors (see von_neumann.py):
-        // 1-4 ordinary ground, 5-8 ordinary excited,
-        // 9-12 special ground, 13-16 special excited,
-        // 17-20 confluent family, 21-24 sensitized-ordinary, 25-28 sensitized-special.
-        if (state >= 1 && state <= 4) {
-          fillColor = "#8EAF85"; // Ordinary transmission ground (quiet leaf green)
-          glowColor = "rgba(142, 175, 133, 0.3)";
-        } else if (state >= 5 && state <= 8) {
-          fillColor = "#FFF9E6"; // Ordinary excitation pulse (warm light ivory)
-          glowColor = "rgba(255, 249, 230, 0.6)";
-        } else if (state >= 9 && state <= 12) {
-          fillColor = "#7FB3C8"; // Special transmission ground (cool steel blue)
-          glowColor = "rgba(127, 179, 200, 0.3)";
-        } else if (state >= 13 && state <= 16) {
-          fillColor = "#D6EDF5"; // Special excitation pulse (pale ice blue)
-          glowColor = "rgba(214, 237, 245, 0.6)";
-        } else if (state >= 17 && state <= 20) {
-          fillColor = "#D9C38F"; // Confluent family (sand / ochre)
-          glowColor = "rgba(217, 195, 143, 0.4)";
-        } else if (state >= 21 && state <= 24) {
-          fillColor = "#E2A654"; // Sensitized-ordinary (warm amber)
+        // Canonical von Neumann 29-state colors (see von_neumann.py):
+        // 1-8 sensitization tree, 9-12 OTS, 13-16 OTS*,
+        // 17-20 STS, 21-24 STS*, 25-28 confluent.
+        if (state >= 1 && state <= 8) {
+          fillColor = "#E2A654"; // Sensitization tree (warm amber)
           glowColor = "rgba(226, 166, 84, 0.5)";
+        } else if (state >= 9 && state <= 12) {
+          fillColor = "#8EAF85"; // Ordinary transmission, quiescent (leaf green)
+          glowColor = "rgba(142, 175, 133, 0.3)";
+        } else if (state >= 13 && state <= 16) {
+          fillColor = "#FFF9E6"; // Ordinary transmission, excited (warm ivory)
+          glowColor = "rgba(255, 249, 230, 0.6)";
+        } else if (state >= 17 && state <= 20) {
+          fillColor = "#7FB3C8"; // Special transmission, quiescent (steel blue)
+          glowColor = "rgba(127, 179, 200, 0.3)";
+        } else if (state >= 21 && state <= 24) {
+          fillColor = "#D6EDF5"; // Special transmission, excited (pale ice)
+          glowColor = "rgba(214, 237, 245, 0.6)";
         } else if (state >= 25 && state <= 28) {
-          fillColor = "#C77FB3"; // Sensitized-special (muted magenta)
+          fillColor = "#C77FB3"; // Confluent organ (muted magenta)
           glowColor = "rgba(199, 127, 179, 0.5)";
         }
       } else {

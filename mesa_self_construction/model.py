@@ -13,7 +13,12 @@ from mesa.discrete_space import OrthogonalMooreGrid, PropertyLayer
 from mesa_self_construction.agents import ConstructionCell
 from mesa_self_construction.salvo import SalvoSchedule, ScheduledGlider
 from mesa_self_construction.presets import ConstructionPreset, get_preset
-from mesa_self_construction.validator import validate_target_pattern, ValidationResult
+from mesa_self_construction.validator import (
+    validate_target_pattern,
+    validate_machine,
+    analyze_construction,
+    ValidationResult,
+)
 
 
 def conway_step_zero_boundary(grid: np.ndarray) -> np.ndarray:
@@ -167,10 +172,11 @@ class SelfConstructionModel(Model):
             "elbow": 0,
             "debris": 0,
         }
-        # Von Neumann construction-event counters (29-state system).
-        self.vn_constructed_cells: int = 0
-        self.vn_killed_cells: int = 0
-        self.vn_sensitized_cells: int = 0
+        # Von Neumann event counters (canonical 29-state system).
+        self.vn_changed_cells: int = 0  # any state change this run
+        self.vn_killed_cells: int = 0  # non-zero -> 0
+        self.vn_sensitized_cells: int = 0  # 0 -> 1 (newly sensitized)
+        self.vn_constructed_cells: int = 0  # 0 -> non-zero since step 0
         self.stage: str = "Initial Configuration"
 
         # Inject step 0 gliders if any
@@ -344,7 +350,15 @@ class SelfConstructionModel(Model):
         # 4. Update telemetry, stage & validation
         self._update_telemetry()
         self.latest_validation = self._run_validation()
+        self._refresh_constructed()
         self._update_stage()
+
+    def _refresh_constructed(self) -> None:
+        """Recompute cells built out of vacuum (machine presets only)."""
+        if self.preset.metadata and self.preset.metadata.get("machine"):
+            self.vn_constructed_cells = analyze_construction(
+                self.grid_data, self.preset.initial_matrix
+            )["constructed"]
 
     def _step_conway_property_layer(self) -> None:
         """High-performance Conway Life step with zero borders (no wrap)."""
@@ -365,28 +379,41 @@ class SelfConstructionModel(Model):
         self.state_layer.data = self.grid_data
 
     def _step_von_neumann(self) -> None:
-        """One synchronous step of the documented 29-state VN system.
+        """One synchronous step of the canonical JvN29 automaton.
 
-        Delegates to von_neumann.step_von_neumann_29 (directional
-        transmission, confluent latch/fire, sensitized construct/kill).
-        Counts genuine construction events (sensitized -> wired cell).
+        Delegates to von_neumann.step_von_neumann_29, which evaluates the
+        vendored reference transition table (first-match semantics).
+        Counts state changes and records newly sensitized / killed cells.
         """
         from mesa_self_construction.von_neumann import step_von_neumann_29
 
         next_grid, events = step_von_neumann_29(self.grid_data)
         self.grid_data = next_grid.astype(np.int32)
         self.state_layer.data = self.grid_data
-        self.vn_constructed_cells += int(events["constructed"])
+        self.vn_changed_cells += int(events["changed"])
         self.vn_killed_cells += int(events["killed"])
         self.vn_sensitized_cells += int(events["sensitized"])
 
     def _run_validation(self) -> ValidationResult:
         """Run validation against current target expectations."""
+        recent_states = self.history_buffer[-10:]
+        meta = self.preset.metadata or {}
+        if meta.get("machine"):
+            return validate_machine(
+                current_grid=self.grid_data,
+                initial_grid=self.preset.initial_matrix,
+                step=self.current_step,
+                min_constructed=int(meta.get("min_constructed", 0)),
+                required_constructed_types=meta.get(
+                    "required_constructed_types"
+                ),
+                require_settled=bool(meta.get("require_settled", False)),
+                recent_states=recent_states,
+                name=self.preset.name,
+            )
         if self.is_von_neumann:
-            # Extending constructors legitimately grow: stability not
-            # required by default, but genuine sensitized->wired events
-            # are. Per-preset metadata may tighten either gate.
-            meta = self.preset.metadata or {}
+            # Per-preset metadata controls whether settling is required
+            # (dynamic demonstrations opt out) and any construction gate.
             return validate_target_pattern(
                 current_grid=self.grid_data,
                 target_box=self.preset.target_box,
@@ -394,11 +421,12 @@ class SelfConstructionModel(Model):
                 expected_population=self.preset.expected_population,
                 step=self.current_step,
                 recent_populations=self.population_history,
+                recent_states=recent_states,
                 gliders_used=self.gliders_injected_count,
                 is_von_neumann=True,
-                require_settled=bool(meta.get("require_settled", False)),
-                constructions=self.vn_constructed_cells,
-                min_constructions=int(meta.get("min_constructions", 5)),
+                require_settled=bool(meta.get("require_settled", True)),
+                constructions=self.vn_changed_cells,
+                min_constructions=int(meta.get("min_constructions", 0)),
             )
         return validate_target_pattern(
             current_grid=self.grid_data,
@@ -407,6 +435,7 @@ class SelfConstructionModel(Model):
             expected_population=self.preset.expected_population,
             step=self.current_step,
             recent_populations=self.population_history,
+            recent_states=recent_states,
             gliders_used=self.gliders_injected_count,
             is_von_neumann=False,
         )
@@ -445,6 +474,7 @@ class SelfConstructionModel(Model):
             # restore exact snapshot for counter continuity.
             self.gliders_consumed_count = self._consumed_count_history[-1]
             self.latest_validation = self._run_validation()
+            self._refresh_constructed()
             self._update_stage()
             return True
         return False
@@ -458,9 +488,10 @@ class SelfConstructionModel(Model):
         self.gliders_injected_count = 0
         self.gliders_consumed_count = 0
         self.gliders_in_flight = 0
-        self.vn_constructed_cells = 0
+        self.vn_changed_cells = 0
         self.vn_killed_cells = 0
         self.vn_sensitized_cells = 0
+        self.vn_constructed_cells = 0
         self.stage = "Reset to Initial State"
         self._inject_due_gliders()
         self.population_history = [int(np.count_nonzero(self.grid_data))]
@@ -518,17 +549,21 @@ class SelfConstructionModel(Model):
             for r, c in indices:
                 active_coords.append([int(r), int(c), 1])
 
-        # Construction-head marker for the visualizer: easternmost
-        # sensitized-or-newly-built cell on the arm row (VN), else None.
+        # Active-front marker for the visualizer: easternmost cell that is
+        # presently sensitized (1-8) or excited (13-16, 21-24, 25-28),
+        # i.e. the leading edge of information flow (VN), else None.
         vn_head = None
         preset_metadata = dict(self.preset.metadata or {})
         if self.is_von_neumann:
-            sens = np.argwhere(
-                (self.grid_data >= 21) & (self.grid_data <= 28)
+            g = self.grid_data
+            active = (
+                ((g >= 1) & (g <= 8))
+                | ((g >= 13) & (g <= 16))
+                | ((g >= 21) & (g <= 28))
             )
-            if len(sens):
-                # Easternmost sensitized cell = live construction front.
-                tip = sens[np.argmax(sens[:, 1])]
+            cells = np.argwhere(active)
+            if len(cells):
+                tip = cells[np.argmax(cells[:, 1])]
                 vn_head = [int(tip[0]), int(tip[1])]
 
         return {
@@ -549,9 +584,10 @@ class SelfConstructionModel(Model):
             "gliders_consumed": self.gliders_consumed_count,
             "gliders_in_flight": self.gliders_in_flight,
             "component_counts": dict(self.component_counts),
-            "vn_constructed": self.vn_constructed_cells,
+            "vn_changed": self.vn_changed_cells,
             "vn_killed": self.vn_killed_cells,
             "vn_sensitized": self.vn_sensitized_cells,
+            "vn_constructed": self.vn_constructed_cells,
             "vn_head": vn_head,
             "metadata": preset_metadata,
             "active_cells": active_coords,

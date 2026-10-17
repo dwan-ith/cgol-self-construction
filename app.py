@@ -20,7 +20,7 @@ WEB_DIR = BASE_DIR / "web"
 
 app = FastAPI(
     title="Mesa Self-Construction Visualizer",
-    description="Interactive cellular automata self-construction in Conway's Life & Von Neumann-style pulse sketch.",
+    description="Interactive construction automata: Conway slow-salvo synthesis and the canonical von Neumann 29-state automaton.",
     version="1.0.0",
 )
 
@@ -101,7 +101,7 @@ def run_to_validation() -> Dict[str, Any]:
     """Fast-forward simulation until target validation step or proof achieved."""
     with model_lock:
         target_step = current_model.preset.validation_step
-        max_steps = 300
+        max_steps = max(300, target_step)
         steps_taken = 0
         while current_model.current_step < target_step and steps_taken < max_steps:
             current_model.step()

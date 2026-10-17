@@ -1,6 +1,14 @@
 """
-Predefined, mathematically verified self-construction experiments in Conway's Game of Life
-and Von Neumann's 29-state cellular automaton constructor.
+Predefined, verified construction experiments.
+
+Conway's Game of Life: slow-salvo glider collisions on zero-border grids
+that synthesize a target structure with no lingering debris.
+
+Von Neumann: demonstrations of the canonical 29-state automaton's
+construction primitives (ordinary transmission, special/ordinary
+interaction, confluent merging) evaluated by the vendored reference
+transition table. These are primitives, not a universal constructor
+program; see ``von_neumann.py`` for the scope statement.
 """
 
 from dataclasses import dataclass
@@ -27,6 +35,10 @@ class ConstructionPreset:
     metadata: Dict[str, Any] = None
 
 
+# ---------------------------------------------------------------------------
+# Conway's Game of Life: slow-salvo construction
+# ---------------------------------------------------------------------------
+
 def make_block_synthesis_preset() -> ConstructionPreset:
     """
     Preset 1: De Novo 2-Glider Block Synthesis
@@ -39,22 +51,12 @@ def make_block_synthesis_preset() -> ConstructionPreset:
     grid = np.zeros((46, 46), dtype=np.uint8)
 
     schedule = SalvoSchedule(name="2-Glider Head-on Salvo")
-    # Glider 1: SE from (10, 10), phase 1
     schedule.add_glider(
-        step=0,
-        row=10,
-        col=10,
-        direction="SE",
-        phase=1,
+        step=0, row=10, col=10, direction="SE", phase=1,
         label="Glider Alpha (SE)",
     )
-    # Glider 2: NW from (24, 29), phase 0
     schedule.add_glider(
-        step=0,
-        row=24,
-        col=29,
-        direction="NW",
-        phase=0,
+        step=0, row=24, col=29, direction="NW", phase=0,
         label="Glider Beta (NW)",
     )
 
@@ -65,7 +67,7 @@ def make_block_synthesis_preset() -> ConstructionPreset:
         name="De Novo 2-Glider Block Synthesis",
         category="Conway's Game of Life: Construction",
         description=(
-            "Two synchronized gliders colliding head-on in vacuum at 180°. "
+            "Two synchronized gliders colliding head-on in vacuum at 180 deg. "
             "Their destructive and constructive interference settles into a permanent 2x2 Block "
             "with zero lingering debris, proving de novo matter synthesis from pure kinetic glider packets."
         ),
@@ -94,24 +96,19 @@ def make_elbow_shift_preset() -> ConstructionPreset:
     Preset 2: Single-Channel Elbow Move / Construction Arm Shift
     The fundamental primitive of EZLiang/cgol-self-construction and simeks.txt:
     A single glider hits a 2x2 elbow block at lane offset -5.
-    The glider is absorbed, and the block cleanly relocates by (dr=-1, dc=-2) at step 71.
+    The glider is absorbed, and the block cleanly relocates by (dr=-1, dc=-2).
     """
     grid = np.zeros((48, 48), dtype=np.uint8)
-    # Initial elbow block at (25, 25)
     grid[25:27, 25:27] = 1
-    
+
     schedule = SalvoSchedule(name="Single-Channel Arm Extension Salvo")
     schedule.add_glider(
-        step=0,
-        row=10,
-        col=5,
-        direction="SE",
-        phase=0,
+        step=0, row=10, col=5, direction="SE", phase=0,
         label="Arm Drive Glider (Lane -5)",
     )
-    
+
     expected_block = np.array([[1, 1], [1, 1]], dtype=np.uint8)
-    
+
     return ConstructionPreset(
         id="elbow_shift",
         name="Single-Channel Arm Extension (0move-2)",
@@ -143,36 +140,24 @@ def make_elbow_shift_preset() -> ConstructionPreset:
 def make_two_stage_arm_preset() -> ConstructionPreset:
     """
     Preset 3: Sequential Two-Stage Arm Walking
-    Demonstrates sequential slow salvo control:
-    Glider 1 repositions the elbow to (24, 23) at step 71.
-    After settling, Glider 2 (released at step 75) hits the relocated elbow,
-    advancing it cleanly to (23, 21) at step 146!
+    Glider 1 repositions the elbow to (24, 23); after settling, Glider 2
+    (released at step 75) advances it to (23, 21).
     """
     grid = np.zeros((56, 56), dtype=np.uint8)
-    grid[25:27, 25:27] = 1  # Initial block at (25, 25)
-    
+    grid[25:27, 25:27] = 1
+
     schedule = SalvoSchedule(name="Two-Glider Chained Elbow Salvo")
-    # Glider 1: fires at t=0
     schedule.add_glider(
-        step=0,
-        row=10,
-        col=5,
-        direction="SE",
-        phase=0,
+        step=0, row=10, col=5, direction="SE", phase=0,
         label="Pulse 1: Reposition Elbow -> (24, 23)",
     )
-    # Glider 2: fires at t=75 (after Glider 1 fully settled at t=71)
     schedule.add_glider(
-        step=75,
-        row=10,
-        col=4,
-        direction="SE",
-        phase=0,
+        step=75, row=10, col=4, direction="SE", phase=0,
         label="Pulse 2: Advance Elbow -> (23, 21)",
     )
-    
+
     expected_block = np.array([[1, 1], [1, 1]], dtype=np.uint8)
-    
+
     return ConstructionPreset(
         id="two_stage_arm",
         name="Sequential Slow-Salvo Arm Walking",
@@ -206,27 +191,17 @@ def make_blinker_synthesis_preset() -> ConstructionPreset:
     """
     Preset 4: 2-Glider Blinker (Oscillator) Synthesis
     Verified recipe (zero borders): SE phase-2 from (10, 10) + NW
-    phase-0 from (20, 23) -> clean period-2 blinker oscillating around
-    rows 19-21, cols 16-18 from step ~30. Horizontal phase on odd steps.
+    phase-0 from (20, 23) -> clean period-2 blinker around rows 19-21,
+    cols 16-18 from step ~30.
     """
     grid = np.zeros((46, 46), dtype=np.uint8)
 
     schedule = SalvoSchedule(name="Blinker Synthesis Salvo")
     schedule.add_glider(
-        step=0,
-        row=10,
-        col=10,
-        direction="SE",
-        phase=2,
-        label="Glider A (SE)",
+        step=0, row=10, col=10, direction="SE", phase=2, label="Glider A (SE)"
     )
     schedule.add_glider(
-        step=0,
-        row=20,
-        col=23,
-        direction="NW",
-        phase=0,
-        label="Glider B (NW)",
+        step=0, row=20, col=23, direction="NW", phase=0, label="Glider B (NW)"
     )
 
     expected_blinker = np.array([[1, 1, 1]], dtype=np.uint8)
@@ -247,154 +222,303 @@ def make_blinker_synthesis_preset() -> ConstructionPreset:
         initial_matrix=grid,
         schedule=schedule,
         is_von_neumann=False,
-        metadata={
-            "period": 2,
-            "final_population": 3,
-            "gliders_used": 2,
-        },
+        metadata={"period": 2, "final_population": 3, "gliders_used": 2},
     )
 
 
-def make_von_neumann_preset() -> ConstructionPreset:
+# ---------------------------------------------------------------------------
+# Von Neumann: canonical 29-state construction primitives
+# ---------------------------------------------------------------------------
+
+def _vn_row_wire_pulse(rows: int, cols: int, row: int, start: int, length: int):
+    """Build a horizontal ordinary-east wire of state 9 with a leading 13."""
+    grid = np.zeros((rows, cols), dtype=np.int32)
+    grid[row, start:start + length] = 9
+    grid[row, start] = 13
+    return grid
+
+
+def make_vn_wire_signal_preset() -> ConstructionPreset:
     """
-    Preset 5: Von Neumann 29-state constructor demonstration
-    (tape loop + confluent latch + extending arm).
+    Preset 5: Ordinary transmission wire (signal in flight).
 
-    Uses the full documented 29-state system in
-    ``von_neumann.step_von_neumann_29``: ordinary/special transmission
-    (ground+excited, directional), confluent ground/latched/firing
-    (one-tick delay memory), and sensitized construct/kill. The arm tip
-    sensitizes quiescent cells which solidify into wired transmission
-    cells as pulses arrive: the arm genuinely extends eastward
-    (16+ counted sensitized->wired events by step 50, easternmost wired
-    cell advancing past col 31 while keeping a 12+ cell clear margin to
-    the grid edge, so finite boundaries introduce no artificial
-    interactions during validation).
-
-    Pulse phase on the arm has period 3 (confluent latch delay); the
-    expected 1x6 segment below is the phase at steps with step % 3 == 2
-    (e.g. step 50). Population grows while extending, so validation
-    requires construction events rather than 8-generation stability
-    (see validator.require_settled=False, min_constructions=5).
-
-    Explicitly out of scope: decoder/universal-constructor programs and
-    self-description tapes (no stored machine description is read; see
-    instead the vn_description_reader preset, which builds output cells
-    from a stored description row).
+    A wire of ordinary-east transmission cells (state 9) carries an
+    excited pulse (state 13) that advances exactly one cell per step,
+    demonstrating the canonical signal carrier. Validated mid-flight
+    (dynamic), so settling is not required.
     """
-    grid = np.zeros((44, 64), dtype=np.int32)
-
-    # Looped instruction tape
-    grid[12, 8:21] = 1
-    grid[12, 21] = 17
-    grid[13:19, 21] = 4
-    grid[18, 8:21] = 3
-    grid[13:18, 8] = 2
-
-    # Extending Construction Arm
-    grid[12, 22:31] = 1
-    grid[12, 31] = 21
-
-    # Initial instruction excitation pulse
-    grid[12, 10] = 5
-    grid[12, 14] = 5
-
-    schedule = SalvoSchedule(name="Von Neumann Instruction Stream")
+    grid = _vn_row_wire_pulse(8, 24, row=4, start=2, length=16)
+    expected = np.full((1, 16), 9, dtype=np.int32)
+    expected[0, 10] = 13  # after 10 steps the pulse has advanced to col 12
 
     return ConstructionPreset(
-        id="von_neumann_constructor",
-        name="Von Neumann 29-State Constructor Demonstration",
-        category="Von Neumann Automata: Construction",
+        id="vn_wire_signal",
+        name="Von Neumann Ordinary Transmission Wire",
+        category="Von Neumann Automata: Primitives",
         description=(
-            "Full 29-state von Neumann system (directional ordinary/special "
-            "transmission, confluent latch with delay, sensitized "
-            "construct/kill). A looped tape circulates pulses through a "
-            "confluent junction; the arm tip sensitizes quiescent cells "
-            "which solidify into wired cells, extending the arm eastward. "
-            "Construction events are counted, not claimed as reproduction: "
-            "decoder programs and self-description tapes are out of scope."
+            "A wire of ordinary transmission states (OTS, state 9) carries an "
+            "excited pulse (state 13) that propagates east at exactly one cell "
+            "per synchronous step. This is the canonical information channel of "
+            "von Neumann's automaton."
         ),
-        grid_size=(44, 64),
-        target_box=(12, 12, 24, 29),
-        expected_pattern=np.array([[5, 1, 1, 5, 1, 1]], dtype=np.int32),
-        expected_population=65,
-        validation_step=50,
-        initial_matrix=grid,
-        schedule=schedule,
-        is_von_neumann=True,
-        metadata={
-            "states_count": 29,
-            "scope": "29-state transitions + arm extension; no universal-construction program",
-            "architecture": "Tape loop + confluent latch + extending arm",
-            "construction_arm_length": 9,
-            "confluent_junction": (12, 21),
-            "head_coordinate": (12, 31),
-            "arm_period": 3,
-            "arm_phase": "step % 3 == 2 reads [5,1,1,5,1,1] on cols 24-29",
-        },
-    )
-
-
-def make_description_reader_preset() -> ConstructionPreset:
-    """
-    Preset 6: Von Neumann description reader (build from a stored tape).
-
-    Three independent reader lines (rows 6, 10, 14) each hold one
-    description cell (ordinary-E = bit O, special-E = bit S) at col 6,
-    fed by a wired line (cols 2-5) carrying two seed pulses. The first
-    pulse sensitizes the blank build slot (col 7); the second solidifies
-    it into a wired cell whose kind matches the description cell. The
-    stored description [O, S, O] is thus copied into built cells
-    [1, 9, 1] at col 7 -- construction driven by a stored description,
-    the core mechanism von Neumann's universal constructor scales up
-    (a full decoder/program tape remains out of scope).
-
-    Settles to total pop 18; validated with the strict settled gate plus
-    min_constructions=3.
-    """
-    grid = np.zeros((20, 44), dtype=np.int32)
-    desc = {6: 1, 10: 9, 14: 1}  # row -> description cell state
-    for row, kind in desc.items():
-        wire = 1 if kind == 1 else 9
-        pulse = 5 if kind == 1 else 13
-        grid[row, 2:6] = wire
-        grid[row, 2] = pulse
-        grid[row, 4] = pulse
-        grid[row, 6] = kind
-        # col 7 left blank as the build slot.
-
-    schedule = SalvoSchedule(name="Description Reader (no glider salvo)")
-
-    expected = np.array([[1], [0], [0], [0], [9], [0], [0], [0], [1]], dtype=np.int32)
-
-    return ConstructionPreset(
-        id="vn_description_reader",
-        name="Von Neumann Description Reader (Tape-Driven Build)",
-        category="Von Neumann Automata: Construction",
-        description=(
-            "Three reader lines copy a stored 3-bit description [O, S, O] "
-            "into built transmission cells [1, 9, 1]. First pulse "
-            "sensitizes each blank build slot; second pulse solidifies it "
-            "with the described kind. Demonstrates description-driven "
-            "construction, the mechanism at the heart of universal "
-            "construction."
-        ),
-        grid_size=(20, 44),
-        target_box=(6, 14, 7, 7),
+        grid_size=(8, 24),
+        target_box=(4, 4, 2, 17),
         expected_pattern=expected,
-        expected_population=18,
-        validation_step=16,
+        expected_population=16,
+        validation_step=10,
         initial_matrix=grid,
-        schedule=schedule,
+        schedule=SalvoSchedule(name="VN wire (no salvo)"),
         is_von_neumann=True,
         metadata={
-            "states_count": 29,
-            "description_bits": ["O", "S", "O"],
-            "description_cells": [(6, 6, 1), (10, 6, 9), (14, 6, 1)],
-            "output_cells": [(6, 7, 1), (10, 7, 9), (14, 7, 1)],
-            "min_constructions": 3,
-            "require_settled": True,
+            "require_settled": False,
+            "min_constructions": 0,
+            "pulse_start": (4, 2),
+            "pulse_at_step": (10, 4, 12),
         },
+    )
+
+
+def make_vn_wire_extension_preset() -> ConstructionPreset:
+    """
+    Preset 6: Canonical wire extension (sensitize -> decode -> new cell).
+
+    A pulse travels the wire and, at the blank tip, sensitizes a quiescent
+    cell (state 1). With no further input the sensitized cell walks the
+    decoding tree 1 -> 2 -> 4 -> 8 and resolves into a new ordinary-east
+    transmission cell (state 9). The arm has thus *constructed* one new
+    wired cell from vacuum via the canonical mechanism. Settles to a
+    still-life wire (period 1).
+    """
+    grid = _vn_row_wire_pulse(8, 16, row=4, start=2, length=6)
+    expected = np.full((1, 7), 9, dtype=np.int32)
+
+    return ConstructionPreset(
+        id="vn_wire_extension",
+        name="Von Neumann Wire Extension (Construction)",
+        category="Von Neumann Automata: Construction",
+        description=(
+            "A pulse reaches the blank tip of an ordinary wire, sensitizes it "
+            "(state 1), and the canonical sensitization tree 1->2->4->8->9 "
+            "resolves it into a new ordinary transmission cell. One new wired "
+            "cell is constructed from vacuum; the result is a stable longer wire."
+        ),
+        grid_size=(8, 16),
+        target_box=(4, 4, 2, 8),
+        expected_pattern=expected,
+        expected_population=7,
+        validation_step=12,
+        initial_matrix=grid,
+        schedule=SalvoSchedule(name="VN wire extension (no salvo)"),
+        is_von_neumann=True,
+        metadata={
+            "require_settled": True,
+            "min_constructions": 0,
+            "constructed_cell": (4, 8),
+            "decode_path": [1, 2, 4, 8, 9],
+        },
+    )
+
+
+def make_vn_special_kill_preset() -> ConstructionPreset:
+    """
+    Preset 7: Special/ordinary interaction (retraction primitive).
+
+    An excited special transmission cell (state 21) fires east and kills
+    the adjacent ordinary transmission cell (state 9 -> 0), then settles
+    into a quiescent special-east cell (state 17). Excited OTS-kills-STS /
+    STS-kills-OTS is the mechanism von Neumann's arm uses to erase cells.
+    """
+    grid = np.zeros((8, 12), dtype=np.int32)
+    grid[4, 2] = 21  # special east, excited
+    grid[4, 3] = 9   # ordinary east, quiescent (will be killed)
+    expected = np.array([[17, 0]], dtype=np.int32)
+
+    return ConstructionPreset(
+        id="vn_special_kill",
+        name="Von Neumann Special/Ordinary Kill",
+        category="Von Neumann Automata: Primitives",
+        description=(
+            "An excited special transmission state (state 21) fires at an "
+            "adjacent ordinary transmission cell and kills it (9 -> 0), then "
+            "settles to quiescent special-east (17). This is the erase/"
+            "retraction primitive of the construction arm."
+        ),
+        grid_size=(8, 12),
+        target_box=(4, 4, 2, 3),
+        expected_pattern=expected,
+        expected_population=1,
+        validation_step=3,
+        initial_matrix=grid,
+        schedule=SalvoSchedule(name="VN kill (no salvo)"),
+        is_von_neumann=True,
+        metadata={
+            "require_settled": True,
+            "min_constructions": 0,
+            "killed_cell": (4, 3),
+        },
+    )
+
+
+def make_vn_confluent_delay_preset() -> ConstructionPreset:
+    """
+    Preset 8: Confluent OR-junction with one-cycle delay.
+
+    A confluent cell (state 25, C00) receives one excited input and runs
+    through C00 -> C01 -> C10 -> C00 (states 25 -> 26 -> 27 -> 25), then
+    holds. The intermediate cycle is the delay that lets the confluent
+    merge two signals arriving on successive steps.
+    """
+    grid = np.zeros((8, 12), dtype=np.int32)
+    grid[4, 2] = 13  # ordinary east, excited (source)
+    grid[4, 3] = 25  # C00
+    expected = np.array([[9, 26]], dtype=np.int32)
+
+    return ConstructionPreset(
+        id="vn_confluent_delay",
+        name="Von Neumann Confluent Delay Junction",
+        category="Von Neumann Automata: Primitives",
+        description=(
+            "A confluent cell (C00, state 25) absorbs an excited input and "
+            "runs 25 -> 26 -> 27 -> 25 before holding. The built-in one-cycle "
+            "delay is what lets a confluent OR-junction combine two signals "
+            "arriving on successive steps."
+        ),
+        grid_size=(8, 12),
+        target_box=(4, 4, 2, 3),
+        expected_pattern=expected,
+        expected_population=2,
+        validation_step=1,
+        initial_matrix=grid,
+        schedule=SalvoSchedule(name="VN confluent delay (no salvo)"),
+        is_von_neumann=True,
+        metadata={
+            "require_settled": False,
+            "min_constructions": 0,
+            "cycle": [25, 26, 27, 25],
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Von Neumann: documented reference machines (vendored Golly JvN29 patterns)
+# ---------------------------------------------------------------------------
+
+def _make_machine_preset(
+    key: str,
+    pid: str,
+    name: str,
+    description: str,
+    validation_step: int,
+    min_constructed: int,
+    required_constructed_types: Optional[List[int]] = None,
+    require_settled: bool = False,
+) -> ConstructionPreset:
+    """Wrap a vendored Golly JvN29 pattern as a behavior-validated preset.
+
+    These run von Neumann's *actual* circuits under the canonical table; the
+    proof is behavioral (cells built out of vacuum, and the documented
+    constructed cell types), not a hand-supplied target shape.
+    """
+    from mesa_self_construction.von_neumann import load_jvn_pattern
+
+    pattern = load_jvn_pattern(key)
+    grid = pattern.grid.astype(np.int32)
+    h, w = grid.shape
+    return ConstructionPreset(
+        id=pid,
+        name=name,
+        category="Von Neumann Automata: Reference Machines",
+        description=description,
+        grid_size=(h, w),
+        target_box=(0, h - 1, 0, w - 1),
+        expected_pattern=None,
+        expected_population=int(np.count_nonzero(grid > 0)),
+        validation_step=validation_step,
+        initial_matrix=grid,
+        schedule=SalvoSchedule(name=f"{name} (no salvo)"),
+        is_von_neumann=True,
+        metadata={
+            "machine": True,
+            "min_constructed": min_constructed,
+            "required_constructed_types": list(required_constructed_types or []),
+            "require_settled": require_settled,
+            "source_pattern": pattern.name or key,
+            "reference": "Golly JvN29 pattern collection (Nobili / von Neumann)",
+        },
+    )
+
+
+def make_vn_counter_preset() -> ConstructionPreset:
+    """Nobili's counting circuit: ten input pulses -> one output pulse + reset.
+
+    As shipped by Golly the circuit runs on its own stored pulses; over time
+    it builds a handful of new cells as it cycles. We validate that live,
+    growing behavior rather than a static shape.
+    """
+    return _make_machine_preset(
+        key="counter",
+        pid="vn_counter",
+        name="Von Neumann Counter (Nobili)",
+        description=(
+            "Renato Nobili's counting circuit in von Neumann's 29-state "
+            "automaton: after ten well-separated input pulses it emits a "
+            "single output pulse and resets. It is a live, self-clocked "
+            "circuit; the proof tracks the cells it builds out of vacuum."
+        ),
+        validation_step=1000,
+        min_constructed=4,
+        require_settled=False,
+    )
+
+
+def make_vn_cell_coders_preset() -> ConstructionPreset:
+    """The nine signal trains that construct the nine constructible cell types.
+
+    ``cell-coders-demo.rle`` (Nobili) shows, for each constructible type
+    (9-12, 17-20, 25), the signal train that builds it and a coder that
+    produces the train. Starting from a quiescent grid, running it constructs
+    18 cells from vacuum whose types are exactly those nine, twice over.
+    """
+    return _make_machine_preset(
+        key="cell_coders",
+        pid="vn_cell_coders",
+        name="Von Neumann Cell Coders (construct all 9 types)",
+        description=(
+            "Nobili's cell-coders demo: nine coders each turn a single excited "
+            "pulse into the signal train that constructs one of the nine "
+            "constructible cell types (OTS 9-12, STS 17-20, confluent 25). "
+            "Running it builds 18 new cells from vacuum covering all nine types."
+        ),
+        validation_step=80,
+        min_constructed=18,
+        required_constructed_types=[9, 10, 11, 12, 17, 18, 19, 20, 25],
+        require_settled=True,
+    )
+
+
+def make_vn_self_replicator_preset() -> ConstructionPreset:
+    """A compact von Neumann self-reproducing machine.
+
+    The machine reads its own description tape and begins constructing a copy;
+    the first few hundred generations already build new transmission and
+    confluent cells near the construction front. Full replication is on the
+    order of 10^5 generations, so the demo validates the *growth* (new cells
+    from vacuum), not the completed copy.
+    """
+    return _make_machine_preset(
+        key="self_replicator",
+        pid="vn_self_replicator",
+        name="Von Neumann Self-Replicator (small variant)",
+        description=(
+            "A compact self-reproducing machine in von Neumann's 29-state "
+            "automaton. It reads its own description tape and starts building "
+            "a copy: within a few hundred steps it constructs new excited "
+            "transmission and confluent cells. Proof tracks construction from "
+            "vacuum; full replication takes ~10^5 generations."
+        ),
+        validation_step=300,
+        min_constructed=8,
+        require_settled=False,
     )
 
 
@@ -403,8 +527,13 @@ ALL_PRESETS: Dict[str, ConstructionPreset] = {
     "elbow_shift": make_elbow_shift_preset(),
     "two_stage_arm": make_two_stage_arm_preset(),
     "blinker_synthesis": make_blinker_synthesis_preset(),
-    "von_neumann_constructor": make_von_neumann_preset(),
-    "vn_description_reader": make_description_reader_preset(),
+    "vn_wire_signal": make_vn_wire_signal_preset(),
+    "vn_wire_extension": make_vn_wire_extension_preset(),
+    "vn_special_kill": make_vn_special_kill_preset(),
+    "vn_confluent_delay": make_vn_confluent_delay_preset(),
+    "vn_counter": make_vn_counter_preset(),
+    "vn_cell_coders": make_vn_cell_coders_preset(),
+    "vn_self_replicator": make_vn_self_replicator_preset(),
 }
 
 

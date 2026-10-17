@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mesa-self-construction"
 version = "1.0.0"
-description = "Self-Constructing Automata in Conway's Game of Life and Von Neumann's 29-State Constructor using Mesa."
+description = "Construction automata in Conway's Game of Life (slow-salvo synthesis) and the canonical von Neumann 29-state automaton, built with Mesa."
 readme = "README.md"
-authors = [{ name = "Mesa Community Contributors" }]
+authors = [{ name = "dwan-ith" }]
 license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
@@ -27,3 +27,6 @@ test = [
 
 [project.scripts]
 mesa-self-construction = "app:app"
+
+[tool.setuptools.package-data]
+mesa_self_construction = ["data/*.table"]
